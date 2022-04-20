@@ -1,0 +1,92 @@
+#!/usr/bin/env python3
+
+
+import json, yaml, sys, os
+import argparse
+import subprocess
+
+
+#
+## Initialize several file system paths based on this script's location
+#
+def initpaths(templatefolder):
+  bindir = os.path.dirname(sys.argv[0])
+  basedir = os.path.realpath(f"{bindir}/..")
+  templatedir = f"{basedir}/{templatefolder}"
+  return [bindir,basedir,templatedir]
+
+#
+## Fetch YAML-formatted configuration
+#
+def getconf(template):
+  fpath = f"{templatedir}/{template}"
+  with open(fpath) as f:
+    c = yaml.safe_load(f)
+
+  #print('CONF: ', c)
+  return c
+
+#
+## Export configuration in JSON format. Return file path
+#
+def export_conf(conf):
+  fname = conf.get('parameters',{}).get('profilename',{}).get('value')
+  fpath = f"/tmp/{fname}.json"
+  with open(fpath,'w') as f:
+    json.dump(conf,f)
+
+  return fpath
+
+
+#
+## Execute a command and catch stdout
+#
+def execcmd(cmd_list, stdin=None, cmd_input=None, err_msg="Command Line Error"):
+  #print('CMD:', cmd_list)
+  #print('INPUT:', cmd_input)
+  #proc = subprocess.Popen(cmd_list, stdin=stdin, stdout=subprocess.PIPE)
+  proc = subprocess.Popen(cmd_list, stdin=stdin, stdout=sys.stdout)
+  out, err = proc.communicate(cmd_input)
+  if proc.returncode != 0:
+    raise IOError("{2}: {0}\n{1}".format(err_msg, err, cmd_list))
+  return out
+
+
+
+if __name__ == '__main__':
+
+    parser = argparse.ArgumentParser(description='deploy azure resources')
+    parser.add_argument('template', nargs='?', type=str )
+
+    parser.add_argument('--templatedir', '-T', nargs='?', required=False, type=str, default='profile', help='templates location (relative path)' )
+    parser.add_argument('--mode', '-M', nargs='?', required=False, type=str, default='deploy', help='mode: build or deploy' )
+    parser.add_argument('--scope', '-S', nargs='?', required=False, type=str, default='group', help='azure deployment scope: tenant,sub,group,mgt' )
+    parser.add_argument('--parameters', '-P', nargs='?', required=True, type=str, help='azure deployment parameters file' )
+
+    args = parser.parse_args()
+
+    [bindir,basedir,templatedir] = initpaths(args.templatedir)
+
+    conf = getconf(args.parameters)
+
+    ## dump config as JSON and pickup the file name
+    jpath = export_conf(conf)
+
+    ## construct full path to template file
+    tpath = f"{templatedir}/{args.template}"
+
+    if args.scope == 'tenant':
+      location = conf.get('parameters',{}).get('location',{}).get('value')
+      cmd = ['az', 'deployment', 'tenant', 'create', '-l', location, '--template-file', tpath, '--parameters', jpath]
+
+    if args.scope == 'sub':
+      location = conf.get('parameters',{}).get('location',{}).get('value')
+      cmd = ['az', 'deployment', 'sub', 'create', '-l', location, '--template-file', tpath, '--parameters', jpath]
+
+    if args.scope == 'group':
+      grp = conf.get('parameters',{}).get('resourcegroup',{}).get('value')
+      cmd = ['az', 'deployment', 'group', 'create', '-g', grp, '--template-file', tpath, '--parameters', jpath]
+
+    out = execcmd(cmd, stdin=subprocess.PIPE, cmd_input=None, err_msg='az deployment error')
+    print('RESULT: ', out)
+

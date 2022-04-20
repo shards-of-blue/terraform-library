@@ -1,0 +1,28 @@
+An azure template deployment must happen in a scope, which is one of:
+
+   tenant
+   subscription
+   resourcegroup
+
+
+The deployment scope is specified as a subcommand in the az cli:
+
+  az deployment tenant --tenantname <tenant>
+  az deployment sub --subscriptionname <sub>
+  az deployment group` --groupname <group>
+
+Also, a scope declaration may be required in the template file, on of:
+
+  targetScope = 'tenant'
+  targetScope = 'subscription'
+ 
+
+
+Bicep loops and conditionals.
+
+These can only be used if directly translatable to ARM template json support structures. They can't be used in the construction of array or object variables.
+
+
+Bicep variables.
+
+Scalar variables seem to be restricted to string/numerical values only. They can't be used to store references to azure resources.

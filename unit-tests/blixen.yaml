@@ -1,0 +1,52 @@
+$schema: 'https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#'
+contentVersion: '1.0.0.0'
+
+parameters:
+  profilename: { value: &PROFILENAME 'blixen' }
+  location: { value: &LOCATION 'westeurope' }
+  serviceaccount: { value: &SVCACCOUNT 'deploy-blixen01' }
+  billingScope: { value: '/providers/Microsoft.Billing/billingAccounts/48026211/enrollmentAccounts/263704' }
+  workload: { value: 'DevTest' }
+  tags:
+    value:
+      budget: 'm-a1'
+      env: 'stable'
+
+  parameters:
+    value:
+      module::resourcegroup:
+        location: *LOCATION
+        name: *PROFILENAME
+        tags:
+          owner: 'infra'
+
+      module::keyvault:
+        location: *LOCATION
+        name: *PROFILENAME
+        principal: *SVCACCOUNT
+        tags:
+          budget: 'm-b1'
+          owner: 'infra'
+
+      module::storageaccount:
+        name: *PROFILENAME
+        location: *LOCATION
+        principal: *SVCACCOUNT
+        tags:
+          budget: 'm-s1'
+          owner: 'infra'
+
+      //module::nwwatcher:
+
+      module::analyticsworkspace:
+        properties:
+          enableDataExport: true
+          retentionInDays: 135
+
+      module::virtualmachine:
+        nameSuffix: '01'
+        osProfile:
+          computerName: 'blixen01'
+          adminUsername: 'admin'
+
+

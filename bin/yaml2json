@@ -1,0 +1,7 @@
+#!/usr/bin/env python3
+
+
+import json, yaml, sys
+
+s = yaml.safe_load(open(sys.argv[1]))
+print(json.dumps(s))
