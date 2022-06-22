@@ -7,17 +7,18 @@ param nameSuffix string = ''
 @description('Azure resource location.')
 param location string = ''
 
+@description('Module parameters.')
+param parameters vaults
+
 @description('[required] Principal to assign access to.')
 param principalid string
 param principaltype_apiversion string
 
-@description('Module parameters.')
-param parameters object
-
 var kvname = (!empty(name)) ? name : parameters['name']
 var kvlocation = (!empty(location)) ? location : parameters['location']
 var tags = parameters['tags']
-var properties = (contains(parameters,'properties')) ? parameters['properties'] : {}
+
+//var properties = (contains(parameters,'properties')) ? parameters['properties'] : {}
 
 //var principal = parameters['principal']
 //var pid = resourceId('Microsoft.ManagedIdentity/userAssignedIdentities',principal)
@@ -51,9 +52,9 @@ var defprops = {
 
 }
 
-resource symbolicname 'Microsoft.KeyVault/vaults@2021-11-01-preview' = {
-  name: '${namePrefix}${kvname}${nameSuffix}'
+resource symbolicname 'Microsoft.KeyVault/vaults@2021-11-01-preview' = [ for r in items(vaults) ]{
+  name: '${namePrefix}${name}${r.value.nameSuffix}'
   location: kvlocation
   tags: tags
-  properties: union(defprops, properties)
+  properties: union(defprops, contains(r.value.parameters,'properties')) ? r.value.parameters['properties'] : {})
 }

@@ -37,9 +37,11 @@ module managedAccount '../modules/managedidentity.bicep' = {
   name: 'mid${profilename}'
   scope: resourcegrp
   params: {
-    apiVersion: managedAccountApiversion
+    name: profilename
     name: serviceaccount
     location: location
+    tags: tags
+    apiVersion: managedAccountApiversion
   }
 }
 
@@ -48,7 +50,9 @@ module profileStorageAccount '../modules/storageaccount.bicep' = if (contains(pa
   scope: resourcegrp
   params: {
     name: profilename
-    parameters: union(defparams, contains(parameters,'module::storageaccount') ? parameters['module::storageaccount'] : {})
+    location: location
+    tags: tags
+    parameters: contains(parameters,'module::storageaccount') ? parameters['module::storageaccount'] : {}
   }
 }
 
@@ -59,9 +63,12 @@ module profileKeyvault '../modules/keyvault.bicep' = if (contains(parameters,'mo
     managedAccount
   ]
   params: {
+    name: profilename
+    location: location
+    tags: tags
     principalid: managedAccount.outputs.id
     principaltype_apiversion: managedAccountApiversion
-    parameters: union(defparams, contains(parameters,'module::keyvault') ? parameters['module::keyvault'] : {})
+    parameters: contains(parameters,'module::keyvault') ? parameters['module::keyvault'] : {}
   }
 }
 
