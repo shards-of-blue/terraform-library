@@ -5,6 +5,9 @@
 #test
 ST_RESGROUP_NAME="INFRA-Provisioning"
 ST_CONTAINER_NAME="tfstate"
+ST_SUBSCRIPTION_ID_test="a6bb6a10-0083-4845-bc27-bb762faec360"
+ST_SUBSCRIPTION_ID_staging="x"
+ST_SUBSCRIPTION_ID_production="x"
 ST_ACCOUNT_NAME_test="prov4f8aT01"
 ST_ACCOUNT_NAME_staging="prov4f8aT11"
 ST_ACCOUNT_NAME_production="prov4f8aT21"
@@ -14,7 +17,9 @@ ST_ACCOUNT_NAME_production="prov4f8aT21"
 BASEDIR=$BITBUCKET_CLONE_DIR
 [ -z "${BASEDIR}" ] && BASEDIR="$(realpath ${BINDIR}/../..)"
 
-[ -n "$TFDIR" -a -d "$TFDIR" ] || { echo "setup: TFDIR '$TFDIR' does not exist"; exit 11; }
+[ -z "${TFMAIN}" -a -d tfmain ] && TFMAIN=tfmain
+[ -z "${TFMAIN}" ] && TFMAIN=.
+
 
 ## environment default (probably not very useful)
 [ -z "$ENV" ] && ENV=$BITBUCKET_DEPLOYMENT_ENVIRONMENT
@@ -23,15 +28,17 @@ BASEDIR=$BITBUCKET_CLONE_DIR
 #echo "BITBUCKET_STEP_OIDC_TOKEN: ${BITBUCKET_STEP_OIDC_TOKEN}"
 #export ARM_OIDC_REQUEST_TOKEN=${BITBUCKET_STEP_OIDC_TOKEN}
 
-## Setup stuff based on deployment environment, if present
-[ -z "${BITBUCKET_DEPLOYMENT_ENVIRONMENT}" ] && return
 
-
-FN="${TFDIR}/${BITBUCKET_DEPLOYMENT_ENVIRONMENT}.tfvars"
+## define optional terraform command-line args
+FN="${TFMAIN}/${ENV}.tfvars"
 if [ -f "$FN" ]; then
     VARFILEARG="-var-file=${FN}"
     echo VARFILEARG=${VARFILEARG}
 fi
+
+## Setup stuff based on deployment environment, if present
+#[ -z "${BITBUCKET_DEPLOYMENT_ENVIRONMENT}" ] && return
+
 
 ## look for various variations of an environment variable
 envenv() {
@@ -55,12 +62,11 @@ ST_ACCOUNT_NAME=$( envenv ST_ACCOUNT_NAME )
 ST_CONTAINER_NAME=$( envenv ST_CONTAINER_NAME )
 
 ## setup terraform backend configuration
-TF_BACKEND_CONF="${TFDIR}/backend.conf"
+TF_BACKEND_CONF="${TFMAIN}/backend.conf"
 cat > $TF_BACKEND_CONF << EOT
 subscription_id      = "${ST_SUBSCRIPTION_ID}"
 resource_group_name  = "${ST_RESGROUP_NAME}"
 storage_account_name = "${ST_ACCOUNT_NAME}"
 container_name       = "${ST_CONTAINER_NAME}"
-key                  = "${BITBUCKET_DEPLOYMENT_ENVIRONMENT}.terraform.tfstate"
+key                  = "${ENV}.terraform.tfstate"
 EOT
-
