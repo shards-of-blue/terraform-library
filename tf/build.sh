@@ -14,22 +14,25 @@ while [ $# -gt 0 ]; do
   esac
 done
 
+## setup default TF variables
+export TF_INPUT=0
+export TF_IN_AUTOMATION=1
+
 . ${BINDIR}/setup.sh
 
-[ -n "${TFMAIN}" ] && GLOBALOPTS="-chdir=${TFMAIN}"
-[ -n "${TF_BACKEND_CONF}" ] && BEVAR="-backend-config=$(basename ${TF_BACKEND_CONF})"
 
-terraform $GOPTS init ${BEVAR} || exit 2
+[ -n "${TFMAIN}" ] && GLOBALOPTS="-chdir=${TFMAIN}"
+
+terraform $GLOBALOPTS init || exit 2
 
 case "${TFMODE}" in
   validate)
     terraform $GLOBALOPTS validate || exit 3 ;;
   plan)
-    env|grep TF
     terraform $GLOBALOPTS validate || exit 3
-    terraform $GLOBALOPTS plan -out=plan -input=false ;;
+    terraform $GLOBALOPTS plan -out=plan ;;
   apply)
-    terraform $GLOBALOPTS apply plan -input=false ;;
+    terraform $GLOBALOPTS apply plan ;;
   *)
     echo "Unknown mode '${TFMODE}'"; exit 11 ;;
 esac
