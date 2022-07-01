@@ -9,3 +9,11 @@ terraform {
   }
 } 
 
+module "conf" {
+  source = "../../../../conf"
+}
+
+locals {
+  confmap = module.conf.values
+}
+

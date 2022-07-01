@@ -13,7 +13,7 @@ data "azurerm_client_config" "this" {}
 
 ## service account to manage this subscription
 resource "azuread_application" "serviceAccount1" {
-  display_name = "eurapp-${var.subscription_name}-${random_id.uniqid.hex}"
+  display_name = "eurapp-${var.name}-${random_id.uniqid.hex}"
   owners       = [data.azuread_client_config.this.object_id]
 }
 
@@ -24,12 +24,12 @@ resource "azuread_application_password" "serviceAccount1" {
 resource "azuread_service_principal" "serviceAccount1" {
   application_id = azuread_application.serviceAccount1.application_id
   owners         = [data.azuread_client_config.this.object_id]
-  description    = "eurapp-${var.subscription_name}-${random_id.uniqid.hex}"
+  description    = "eurapp-${var.name}-${random_id.uniqid.hex}"
 }
 
 ## Export crendentials to: pipeline config
 resource "local_file" "azurerc" {
-  filename        = ".svcaccount.${var.subscription_name}"
+  filename        = ".svcaccount.${var.name}"
   file_permission = "0600"
   content         = <<EOF
 echo this should go into a pipeline configuration
