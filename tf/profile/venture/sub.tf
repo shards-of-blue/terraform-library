@@ -68,3 +68,8 @@ resource "azurerm_role_assignment" "serviceRole2" {
   role_definition_name = "Storage Blob Data Contributor"
   principal_id         = azuread_service_principal.serviceAccount1.object_id
 }
+resource "azurerm_role_assignment" "serviceRole3" {
+  scope                = data.azurerm_storage_account.commonStorageAccount1.id
+  role_definition_name = "Storage Account Key Operator Service Role"
+  principal_id         = azuread_service_principal.serviceAccount1.object_id
+}
