@@ -4,7 +4,7 @@
 
 ## generate a unique id for resources that may require this
 resource "random_id" "repo_uniqid" {
-  byte_length = 16
+  byte_length = 8
 }
 
 locals {
