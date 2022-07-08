@@ -15,3 +15,5 @@ There are components in several categories:
 
     - tf/roots: terraform code that is ready-to-run as an deployment routine to roll out a fully formed infrastructure component that only needs some amount of input parameters.
 
+
+Note that terraform module and profile names are versioned (with a '-vX' suffix). This is done to reduce the risk of terraform getting confused by too many internal layout changes. So if any major changes are made that may keep terraform from reconciling the existing state of resources that are deployed already then introduce a new version of module/profile so existing terraform deployment are not affected.
