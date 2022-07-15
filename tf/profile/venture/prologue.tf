@@ -6,6 +6,10 @@ terraform {
     bitbucket = {
       source = "DrFaust92/bitbucket"
     }
+    github = {
+      source  = "integrations/github"
+      version = "~> 4.0"
+    }
   }
 } 
 
