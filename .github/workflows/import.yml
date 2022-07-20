@@ -1,0 +1,38 @@
+name: Import Deployment Library and Configuration files
+
+on:
+  workflow_call:
+    inputs:
+      libref:
+        required: false
+        type: string
+        default: release
+
+jobs:
+  upload-artifacts:
+    runs-on: ubuntu-latest
+
+    steps:
+      ## library repo
+      - uses: actions/checkout@v3
+        with:
+          repository: shards-of-blue/terraform-library
+          ref: ${{inputs.libref}}
+          path: lib
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: terraform-library
+          path: lib/tf/
+
+      ## configuration repo
+      - uses: actions/checkout@v3
+        with:
+          repository: shards-of-blue/azure-global-configuration
+          path: conf
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: global-configuration
+          path: conf/
+#
