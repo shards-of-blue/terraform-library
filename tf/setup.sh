@@ -92,6 +92,8 @@ BASEDIR=$BITBUCKET_CLONE_DIR
 #echo "BITBUCKET_STEP_OIDC_TOKEN: ${BITBUCKET_STEP_OIDC_TOKEN}"
 #export ARM_OIDC_REQUEST_TOKEN=${BITBUCKET_STEP_OIDC_TOKEN}
 
+## set 'env' input which is a parameter of many roots
+export TF_VAR_env=${ENV}
 
 ## look for env-specific terraform variable files
 FN="${TFMAIN}/${ENV}.tfvars"
