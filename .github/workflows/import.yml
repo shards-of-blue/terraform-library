@@ -20,10 +20,16 @@ jobs:
           ref: ${{inputs.libref}}
           path: lib
 
+      ## fixup script mode
+      - name: fixup script mode
+        run: |
+          chmod a+x lib/tf/build.sh lib/tf/setup.sh
+
       - uses: actions/upload-artifact@v3
         with:
           name: terraform-library
           path: lib/tf/
+          retention-days: 2
 
       ## configuration repo
       - name: show token
@@ -47,4 +53,5 @@ jobs:
         with:
           name: platform-configuration
           path: conf/
+          retention-days: 2
 #
