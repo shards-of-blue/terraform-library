@@ -6,9 +6,10 @@ BINDIR=$(dirname $0)
 while [ $# -gt 0 ]; do
   case $1 in
     -v) verbose=1; shift;;
-    -env) ENV="$2"; shift 2;;
+    -tenantkey) TENANTKEY="$2"; shift 2;;
     -main) TFMAIN="$2"; shift 2;;
     -mode) TFMODE="$2"; shift 2;;
+    -azclilogin) AZCLILOGIN="1"; shift;;
     -*) echo "Unknown option $1"; shift;;
      *) break;;
   esac
@@ -32,7 +33,7 @@ case "${TFMODE}" in
     terraform $GLOBALOPTS validate || exit 3
     terraform $GLOBALOPTS plan -out=plan ;;
   apply)
-    terraform $GLOBALOPTS apply plan ;;
+    terraform $GLOBALOPTS apply plan || exit 4 ;;
   *)
     echo "Unknown mode '${TFMODE}'"; exit 11 ;;
 esac

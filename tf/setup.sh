@@ -3,21 +3,21 @@
 #
 
 #test
-ST_RESGROUP_NAME="INFRA-Provisioning"
-ST_CONTAINER_NAME="tfstate"
-ST_SUBSCRIPTION_ID_test="a6bb6a10-0083-4845-bc27-bb762faec360"
-ST_SUBSCRIPTION_ID_staging="x"
-ST_SUBSCRIPTION_ID_production="x"
-ST_ACCOUNT_NAME_test="prov4f8at01"
-ST_ACCOUNT_NAME_staging="prov4f8at11"
-ST_ACCOUNT_NAME_production="prov4f8at21"
+#ST_RESGROUP_NAME="INFRA-Provisioning"
+#ST_CONTAINER_NAME="tfstate"
+#ST_SUBSCRIPTION_ID_test="a6bb6a10-0083-4845-bc27-bb762faec360"
+#ST_SUBSCRIPTION_ID_staging="x"
+#ST_SUBSCRIPTION_ID_production="x"
+#ST_ACCOUNT_NAME_test="prov4f8at01"
+#ST_ACCOUNT_NAME_staging="prov4f8at11"
+#ST_ACCOUNT_NAME_production="prov4f8at21"
 #testend
 
 ## look for various variations of an environment variable
 envenv() {
   local varname="${1}"
   local default="${2}"
-  local v=$( eval echo \$${varname}_${ENV} )
+  local v=$( eval echo \$${varname}_${TENANTKEY} )
   if [ -n "${v}" ]; then echo $v; return; fi
   v=$( eval echo \$${varname} )
   if [ -n "${v}" ]; then echo $v; return; fi
@@ -75,64 +75,97 @@ pull_subrepo()
 }
 
 #
+## setup terraform azure backend configuration
+## Get data from env variables, if present. Otherwise extract from
+## global platform configuration.
+#
+aztf_backend_conf() {
+  local TKEY=$1
+  local TNAME=$1
+
+  [ -n "${TKEY}" ] || return 1
+  [ -n "${TNAME}" ] || return 1
+
+  ST_SUBSCRIPTION_ID=$( envenv ST_SUBSCRIPTION_ID )
+  [ -z "${ST_SUBSCRIPTION_ID}" ] && ST_SUBSCRIPTION_ID=$(yq '.az_infra_provisioning_subscription_id' < conf/$TKEY.yaml)
+
+  ST_RESGROUP_NAME=$( envenv ST_RESGROUP_NAME )
+  [ -z "${ST_RESGROUP_NAME}" ] && ST_RESGROUP_NAME=$(yq '.az_infra_provisioning_resource_group' < conf/$TKEY.yaml)
+
+  ST_ACCOUNT_NAME=$( envenv ST_ACCOUNT_NAME )
+  [ -z "${ST_ACCOUNT_NAME}" ] && ST_ACCOUNT_NAME=$(yq '.az_infra_provisioning_storage_account' < conf/$TKEY.yaml)
+
+  ## Container name component defaults to LZ name
+  ST_CONTAINER_NAME=$( envenv ST_CONTAINER_NAME )
+  [ -z "${ST_CONTAINER_NAME}" ] && ST_CONTAINER_NAME="tfstate-${TNAME}"
+
+  cat > "${TFMAIN}/backend.conf" << EOT
+subscription_id      = "${ST_SUBSCRIPTION_ID}"
+resource_group_name  = "${ST_RESGROUP_NAME}"
+storage_account_name = "${ST_ACCOUNT_NAME}"
+container_name       = "${ST_CONTAINER_NAME}"
+key                  = "${TFMAIN}/${PLATFORM_IMMUTABLE_ID}.terraform.tfstate"
+use_azuread_auth     = true
+EOT
+  export TF_CLI_ARGS_init="${TF_CLI_ARGS_init} -backend-config backend.conf"
+}
+
+#
 ## record base directory of this build
 ## (note: default on assumption this script lives in "lib/tf")
 #
-BASEDIR=$BITBUCKET_CLONE_DIR
+[ -z "${BASEDIR}" ] && BASEDIR=$GITHUB_WORKSPACE
+[ -z "${BASEDIR}" ] && BASEDIR=$BITBUCKET_CLONE_DIR
 [ -z "${BASEDIR}" ] && BASEDIR="$(realpath ${BINDIR}/../..)"
 
 [ -z "${TFMAIN}" -a -d tfmain ] && TFMAIN=tfmain
 [ -z "${TFMAIN}" ] && TFMAIN=.
 
 
-## environment default (probably not very useful)
-[ -z "$ENV" ] && ENV=$BITBUCKET_DEPLOYMENT_ENVIRONMENT
+## azure tenant default (probably not very useful)
+#[ -z "$TENANTKEY" ] && TENANTKEY=$BITBUCKET_DEPLOYMENT_ENVIRONMENT
 
-## check if we have OIDC tokens (doesn't work properly yet in bitbucket)
-#echo "BITBUCKET_STEP_OIDC_TOKEN: ${BITBUCKET_STEP_OIDC_TOKEN}"
-#export ARM_OIDC_REQUEST_TOKEN=${BITBUCKET_STEP_OIDC_TOKEN}
+if [ -n "${BITBUCKET_STEP_OIDC_TOKEN}" ]; then
+  ## check if we have OIDC tokens (doesn't work properly yet in bitbucket)
+  echo "BITBUCKET_STEP_OIDC_TOKEN: ${BITBUCKET_STEP_OIDC_TOKEN}"
+  export ARM_OIDC_REQUEST_TOKEN=${BITBUCKET_STEP_OIDC_TOKEN}
+fi
 
 ## set 'env' input which is a parameter of many roots
-export TF_VAR_env=${ENV}
+export TF_VAR_tenant=${TENANTKEY}
 
 ## look for env-specific terraform variable files
-FN="${TFMAIN}/${ENV}.tfvars"
+FN="${TFMAIN}/${TENANTKEY}.tfvars"
 if [ -f "$FN" ]; then
     export TF_CLI_ARGS_plan="${TF_CLI_ARGS_plan} -var-file=${FN}"
 fi
 
-## Setup stuff based on deployment environment, if present
-#[ -z "${BITBUCKET_DEPLOYMENT_ENVIRONMENT}" ] && return
-
-
-## check if there env-specific versions of the ARM_* variables
-ARM_SUBSCRIPTION_ID=$( envenv ARM_SUBSCRIPTION_ID )
-ARM_CLIENT_ID=$( envenv ARM_CLIENT_ID )
-ARM_CLIENT_SECRET=$( envenv ARM_CLIENT_SECRET )
-
-ST_SUBSCRIPTION_ID=$( envenv ST_SUBSCRIPTION_ID )
-ST_RESGROUP_NAME=$( envenv ST_RESGROUP_NAME )
-ST_ACCOUNT_NAME=$( envenv ST_ACCOUNT_NAME )
-ST_CONTAINER_NAME=$( envenv ST_CONTAINER_NAME )
-
 ## collect any repo-defined settings
+[ -f ./.pipeline.vars ] && . ./.pipeline.vars
 [ -f ./tfsettings ] && . ./tfsettings
 [ -f "${TFMAIN}/tfsettings" ] && . "${TFMAIN}/tfsettings"
 
-## setup terraform backend configuration
-export TF_CLI_ARGS_init="${TF_CLI_ARGS_init} -backend-config backend.conf"
-cat > "${TFMAIN}/backend.conf" << EOT
-subscription_id      = "${ST_SUBSCRIPTION_ID}"
-resource_group_name  = "${ST_RESGROUP_NAME}"
-storage_account_name = "${ST_ACCOUNT_NAME}"
-container_name       = "${ST_CONTAINER_NAME}"
-key                  = "${INFRA_IMMUTABLE_ID}-${INFRA_DEPLOY_ID}/${ENV}.terraform.tfstate"
-use_azuread_auth     = true
-EOT
+aztf_backend_conf $TENANTKEY $LZ_NAME
 
-
-## pull library and configuration
-##get_bbtoken()
-##pull_subrepo lib azure-library shades-of-blue release-v1
-##pull_subrepo conf azure-global-configuration shades-of-blue
 #
+## check for tenant-specific versions of the ARM_* variables
+## Note that these are also used as input to if AZ CLI login is requested
+#
+export ARM_SUBSCRIPTION_ID=$( envenv ARM_SUBSCRIPTION_ID )
+export ARM_CLIENT_ID=$( envenv ARM_CLIENT_ID )
+export ARM_CLIENT_SECRET=$( envenv ARM_CLIENT_SECRET )
+export ARM_TENANT_ID=$( envenv ARM_TENANT_ID )
+
+if [ -n "${AZCLILOGIN}" ]; then
+  ## we can't use a service account; setup session with az cli
+  az login --allow-no-subscriptions --username "$ARM_CLIENT_ID" --password "$ARM_CLIENT_SECRET" --tenant "$ARM_TENANT_ID" || {
+
+    echo "AZ login failed"
+    exit 2
+  }
+
+  ## unset ARM_ variables to avoid upsetting terraform
+  unset ARM_SUBSCRIPTION_ID
+  unset ARM_CLIENT_ID
+  unset ARM_CLIENT_SECRET
+fi
