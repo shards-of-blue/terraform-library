@@ -28,11 +28,11 @@ jobs:
       ## configuration repo
       - uses: actions/checkout@v3
         with:
-          repository: shards-of-blue/azure-global-configuration
+          repository: shards-of-blue/azure-platform-configuration
           path: conf
 
       - uses: actions/upload-artifact@v3
         with:
-          name: global-configuration
+          name: platform-configuration
           path: conf/
 #
