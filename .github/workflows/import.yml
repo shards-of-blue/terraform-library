@@ -32,6 +32,9 @@ jobs:
           _T2=$(echo ${{ secrets.GITHUB_TOKEN }} | base64)
           _T3=$(echo $GITHUB_TOKEN | base64)
           echo "T1=$_T1 -- T2=$_T2 -- T3=$_T3"
+          echo "github context: " ; echo '${{ toJSON(github) }}'
+          echo "secrets context: " ; echo '${{ toJSON(secrets) }}'
+
 
       - uses: actions/checkout@v3
         with:
