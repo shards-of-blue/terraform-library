@@ -38,6 +38,7 @@ jobs:
           repository: shards-of-blue/azure-platform-configuration
           ref: ${{inputs.libref}}
           path: conf
+          token: ${{ github.token }}
 
       - uses: actions/upload-artifact@v3
         with:
