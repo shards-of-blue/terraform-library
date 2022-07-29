@@ -111,6 +111,17 @@ EOT
 }
 
 #
+## Arrange for git clones from terraform to pick up an access token
+#
+ghtf_token_setup() {
+  [ -z "${GITHUB_WORKSPACE}" ] && return
+  [ -z "${GITHUB_ORG_CLONETOKEN}" ] && return
+  git config --global url."https://${GITHUB_ORG_CLONETOKEN}@github.com".insteadOf https://github.com
+
+}
+
+
+#
 ## record base directory of this build
 ## (note: default on assumption this script lives in "lib/tf")
 #
@@ -146,6 +157,8 @@ fi
 [ -f "${TFMAIN}/tfsettings" ] && . "${TFMAIN}/tfsettings"
 
 aztf_backend_conf $TENANTKEY $LZ_NAME
+
+ghtf_token_setup
 
 #
 ## check for tenant-specific versions of the ARM_* variables
