@@ -31,17 +31,6 @@ jobs:
           path: lib/tf/
           retention-days: 2
 
-      ## configuration repo
-      - name: show token
-        run: |
-          _T1=$(echo ${{ github.token }} | base64)
-          _T2=$(echo ${{ secrets.GITHUB_TOKEN }} | base64)
-          _T3=$(echo $GITHUB_TOKEN | base64)
-          echo "T1=$_T1 -- T2=$_T2 -- T3=$_T3"
-          echo "github context: " ; echo '${{ toJSON(github) }}'
-          echo "secrets context: " ; echo '${{ toJSON(secrets) }}'
-
-
       - uses: actions/checkout@v3
         with:
           repository: shards-of-blue/azure-platform-configuration
