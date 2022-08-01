@@ -9,6 +9,7 @@ while [ $# -gt 0 ]; do
     -tenantkey) TENANTKEY="$2"; shift 2;;
     -main) TFMAIN="$2"; shift 2;;
     -mode) TFMODE="$2"; shift 2;;
+    -storekey) TFSTOREKEY="$2"; shift 2;;
     -azclilogin) AZCLILOGIN="1"; shift;;
     -*) echo "Unknown option $1"; shift;;
      *) break;;

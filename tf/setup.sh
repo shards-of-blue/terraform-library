@@ -99,12 +99,14 @@ aztf_backend_conf() {
   ST_CONTAINER_NAME=$( envenv ST_CONTAINER_NAME )
   [ -z "${ST_CONTAINER_NAME}" ] && ST_CONTAINER_NAME="tfstate-${TNAME}"
 
+  [ -z "${TFSTOREKEY}" ] && TFSTOREKEY="${ST_SUBSCRIPTION_ID}"
+
   cat > "${TFMAIN}/backend.conf" << EOT
 subscription_id      = "${ST_SUBSCRIPTION_ID}"
 resource_group_name  = "${ST_RESGROUP_NAME}"
 storage_account_name = "${ST_ACCOUNT_NAME}"
 container_name       = "${ST_CONTAINER_NAME}"
-key                  = "${TFMAIN}/${PLATFORM_IMMUTABLE_ID}.terraform.tfstate"
+key                  = "${TFMAIN}/${TFSTOREKEY}-terraform.tfstate"
 use_azuread_auth     = true
 EOT
   export TF_CLI_ARGS_init="${TF_CLI_ARGS_init} -backend-config backend.conf"
@@ -142,7 +144,7 @@ if [ -n "${BITBUCKET_STEP_OIDC_TOKEN}" ]; then
   export ARM_OIDC_REQUEST_TOKEN=${BITBUCKET_STEP_OIDC_TOKEN}
 fi
 
-## set 'env' input which is a parameter of many roots
+## set 'tenant' parameter which, by convention, is required in many roots
 export TF_VAR_tenant=${TENANTKEY}
 
 ## look for env-specific terraform variable files
@@ -161,24 +163,30 @@ aztf_backend_conf $TENANTKEY $LZ_NAME
 ghtf_token_setup
 
 #
-## check for tenant-specific versions of the ARM_* variables
-## Note that these are also used as input to if AZ CLI login is requested
+## check for tenant-specific versions of AZURE_* credential variables
 #
-export ARM_SUBSCRIPTION_ID=$( envenv ARM_SUBSCRIPTION_ID )
-export ARM_CLIENT_ID=$( envenv ARM_CLIENT_ID )
-export ARM_CLIENT_SECRET=$( envenv ARM_CLIENT_SECRET )
-export ARM_TENANT_ID=$( envenv ARM_TENANT_ID )
 
 if [ -n "${AZCLILOGIN}" ]; then
-  ## we can't use a service account; setup session with az cli
-  az login --allow-no-subscriptions --username "$ARM_CLIENT_ID" --password "$ARM_CLIENT_SECRET" --tenant "$ARM_TENANT_ID" || {
+  ## use a regular user account
+  export AZURE_SUBSCRIPTION_ID=$( envenv AZURE_SUBSCRIPTION_ID )
+  export AZURE_CLIENT_ID=$( envenv AZURE_CLIENT_ID )
+  export AZURE_CLIENT_SECRET=$( envenv AZURE_CLIENT_SECRET )
+  export AZURE_TENANT_ID=$( envenv AZURE_TENANT_ID )
+
+  az login --allow-no-subscriptions --username "$AZURE_CLI_CLIENT_ID" --password "$AZURE_CLI_CLIENT_SECRET" --tenant "$AZURE_CLI_TENANT_ID" || {
 
     echo "AZ login failed"
     exit 2
   }
 
-  ## unset ARM_ variables to avoid upsetting terraform
+  ## unset any ARM_ variables to avoid upsetting terraform
   unset ARM_SUBSCRIPTION_ID
   unset ARM_CLIENT_ID
   unset ARM_CLIENT_SECRET
+
+else
+  export ARM_SUBSCRIPTION_ID=$( envenv AZURE_SUBSCRIPTION_ID )
+  export ARM_CLIENT_ID=$( envenv AZURE_CLIENT_ID )
+  export ARM_CLIENT_SECRET=$( envenv AZURE_CLIENT_SECRET )
+  export ARM_TENANT_ID=$( envenv AZURE_TENANT_ID )
 fi
