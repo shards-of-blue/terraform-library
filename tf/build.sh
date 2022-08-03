@@ -33,6 +33,8 @@ case "${TFMODE}" in
   plan)
     terraform $GLOBALOPTS validate || exit 3
     terraform $GLOBALOPTS plan -out=plan ;;
+  destroy)
+    terraform $GLOBALOPTS plan -out=plan -destroy ;;
   apply)
     terraform $GLOBALOPTS apply plan || exit 4 ;;
   *)

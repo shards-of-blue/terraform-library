@@ -2,22 +2,11 @@
 ## Common terraform setup tasks
 #
 
-#test
-#ST_RESGROUP_NAME="INFRA-Provisioning"
-#ST_CONTAINER_NAME="tfstate"
-#ST_SUBSCRIPTION_ID_test="a6bb6a10-0083-4845-bc27-bb762faec360"
-#ST_SUBSCRIPTION_ID_staging="x"
-#ST_SUBSCRIPTION_ID_production="x"
-#ST_ACCOUNT_NAME_test="prov4f8at01"
-#ST_ACCOUNT_NAME_staging="prov4f8at11"
-#ST_ACCOUNT_NAME_production="prov4f8at21"
-#testend
-
 ## look for various variations of an environment variable
 envenv() {
   local varname="${1}"
   local default="${2}"
-  local v=$( eval echo \$${varname}_${TENANTKEY} )
+  local v=$( eval echo \$${varname}_${TENANTKEY^^} )
   if [ -n "${v}" ]; then echo $v; return; fi
   v=$( eval echo \$${varname} )
   if [ -n "${v}" ]; then echo $v; return; fi
