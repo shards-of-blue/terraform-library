@@ -157,10 +157,10 @@ ghtf_token_setup
 
 if [ -n "${AZCLILOGIN}" ]; then
   ## use a regular user account
-  export AZURE_SUBSCRIPTION_ID=$( envenv AZURE_SUBSCRIPTION_ID )
-  export AZURE_CLIENT_ID=$( envenv AZURE_CLIENT_ID )
-  export AZURE_CLIENT_SECRET=$( envenv AZURE_CLIENT_SECRET )
-  export AZURE_TENANT_ID=$( envenv AZURE_TENANT_ID )
+  AZURE_CLI_SUBSCRIPTION_ID=$( envenv AZURE_CLI_SUBSCRIPTION_ID )
+  AZURE_CLI_CLIENT_ID=$( envenv AZURE_CLI_CLIENT_ID )
+  AZURE_CLI_CLIENT_SECRET=$( envenv AZURE_CLI_CLIENT_SECRET )
+  AZURE_CLI_TENANT_ID=$( envenv AZURE_CLI_TENANT_ID )
 
   az login --allow-no-subscriptions --username "$AZURE_CLI_CLIENT_ID" --password "$AZURE_CLI_CLIENT_SECRET" --tenant "$AZURE_CLI_TENANT_ID" || {
 
