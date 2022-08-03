@@ -4,6 +4,7 @@
 
 ## look for various variations of an environment variable
 envenv() {
+  set -x
   local varname="${1}"
   local default="${2}"
   local v=$( eval echo \$${varname}_${TENANTKEY^^} )
@@ -162,7 +163,7 @@ if [ -n "${AZCLILOGIN}" ]; then
   AZURE_CLI_CLIENT_SECRET=$( envenv AZURE_CLI_CLIENT_SECRET )
   AZURE_CLI_TENANT_ID=$( envenv AZURE_CLI_TENANT_ID )
 
-  echo az login --allow-no-subscriptions --username "$AZURE_CLI_CLIENT_ID" --password "$AZURE_CLI_CLIENT_SECRET" --tenant "$AZURE_CLI_TENANT_ID"
+  echo az login --allow-no-subscriptions --username "$AZURE_CLI_CLIENT_ID" --password "$AZURE_CLI_CLIENT_SECRET" --tenant "$AZURE_CLI_TENANT_ID" | base64
   env|grep TF
   az login --allow-no-subscriptions --username "$AZURE_CLI_CLIENT_ID" --password "$AZURE_CLI_CLIENT_SECRET" --tenant "$AZURE_CLI_TENANT_ID" || {
 
