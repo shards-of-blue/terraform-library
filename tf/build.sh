@@ -33,7 +33,6 @@ export TF_IN_AUTOMATION=1
 
 terraform $GLOBALOPTS init || exit 2
 
-unset GITHUB_TOKEN
 case "${TFMODE}" in
   validate)
     terraform $GLOBALOPTS validate || exit 3 ;;

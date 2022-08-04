@@ -90,6 +90,8 @@ aztf_backend_conf() {
   ST_KEY_PREFIX=$( envenv ST_KEY_PREFIX )
   [ -z "${ST_KEY_PREFIX}" ] && ST_KEY_PREFIX=0
 
+  echo " --setup: constructing azurerm backend configuration file"
+
   cat > "${TFMAIN}/backend.conf" << EOT
 subscription_id      = "${ST_SUBSCRIPTION_ID}"
 resource_group_name  = "${ST_RESGROUP_NAME}"
@@ -105,12 +107,10 @@ EOT
 ## Arrange for git clones from terraform to pick up an access token
 #
 ghtf_token_setup() {
-  echo TOKENSETUP
-  env
   [ -z "${GITHUB_WORKSPACE}" ] && return
   [ -z "${GITHUB_ORG_CLONETOKEN}" ] && return
+  echo " --setup: setup github token to clone other repos in the organization"
   git config --global url."https://${GITHUB_ORG_CLONETOKEN}@github.com".insteadOf https://github.com
-  cat ~/.gitconfig
 }
 
 
