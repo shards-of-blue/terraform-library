@@ -171,6 +171,7 @@ if [ -n "${AZCLILOGIN}" ]; then
   unset ARM_SUBSCRIPTION_ID
   unset ARM_CLIENT_ID
   unset ARM_CLIENT_SECRET
+  az account show
 
 else
   export ARM_SUBSCRIPTION_ID=$( envenv AZURE_SUBSCRIPTION_ID )
