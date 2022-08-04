@@ -32,8 +32,8 @@ export TF_IN_AUTOMATION=1
 [ -n "${TFMAIN}" ] && GLOBALOPTS="-chdir=${TFMAIN}"
 
 terraform $GLOBALOPTS init || exit 2
-rm ~/.gitconfig
 
+unset GITHUB_TOKEN
 case "${TFMODE}" in
   validate)
     terraform $GLOBALOPTS validate || exit 3 ;;
