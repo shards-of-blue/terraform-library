@@ -134,6 +134,9 @@ fi
 
 ## set 'tenant' parameter which, by convention, is required in many roots
 export TF_VAR_tenant=${TENANTKEY}
+echo '----PROLOGUE----'
+cat ${TFMAIN}/prologue.tf
+echo '----END----'
 
 ## look for env-specific terraform variable files
 FN="${TFMAIN}/${TENANTKEY}.tfvars"
