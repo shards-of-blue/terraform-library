@@ -110,7 +110,7 @@ ghtf_token_setup() {
   [ -z "${GITHUB_WORKSPACE}" ] && return
   [ -z "${GITHUB_ORG_CLONETOKEN}" ] && return
   git config --global url."https://${GITHUB_ORG_CLONETOKEN}@github.com".insteadOf https://github.com
-  cat .git/config
+  cat .gitconfig
 }
 
 
