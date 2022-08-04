@@ -66,36 +66,36 @@ pull_subrepo()
 #
 ## setup terraform azure backend configuration
 ## Get data from env variables, if present. Otherwise extract from
-## global platform configuration.
+## global platform configuration, if appropriate.
 #
 aztf_backend_conf() {
-  local TKEY=$1
-  local TNAME=$1
-
-  [ -n "${TKEY}" ] || return 1
-  [ -n "${TNAME}" ] || return 1
 
   ST_SUBSCRIPTION_ID=$( envenv ST_SUBSCRIPTION_ID )
-  [ -z "${ST_SUBSCRIPTION_ID}" ] && ST_SUBSCRIPTION_ID=$(yq '.az_infra_provisioning_subscription_id' < conf/$TKEY.yaml)
+  [ -z "${ST_SUBSCRIPTION_ID}" ] && ST_SUBSCRIPTION_ID=$(yq '.az_infra_provisioning_subscription_id' < conf/$TENANTKEY.yaml)
 
   ST_RESGROUP_NAME=$( envenv ST_RESGROUP_NAME )
-  [ -z "${ST_RESGROUP_NAME}" ] && ST_RESGROUP_NAME=$(yq '.az_infra_provisioning_resource_group' < conf/$TKEY.yaml)
+  [ -z "${ST_RESGROUP_NAME}" ] && ST_RESGROUP_NAME=$(yq '.az_infra_provisioning_resource_group' < conf/$TENANTKEY.yaml)
 
   ST_ACCOUNT_NAME=$( envenv ST_ACCOUNT_NAME )
-  [ -z "${ST_ACCOUNT_NAME}" ] && ST_ACCOUNT_NAME=$(yq '.az_infra_provisioning_storage_account' < conf/$TKEY.yaml)
+  [ -z "${ST_ACCOUNT_NAME}" ] && ST_ACCOUNT_NAME=$(yq '.az_infra_provisioning_storage_account' < conf/$TENANTKEY.yaml)
 
-  ## Container name component defaults to LZ name
+  ## container name component defaults to LZ name
   ST_CONTAINER_NAME=$( envenv ST_CONTAINER_NAME )
-  [ -z "${ST_CONTAINER_NAME}" ] && ST_CONTAINER_NAME="tfstate-${TNAME}"
+  if [ -z "${ST_CONTAINER_NAME}" ]; then
+    echo "variable ST_CONTAINER_NAME is not set"
+    return 1
+  fi
 
-  [ -z "${TFSTOREKEY}" ] && TFSTOREKEY="${ST_SUBSCRIPTION_ID}"
+  ## key prefix component defaults to LZ name
+  ST_KEY_PREFIX=$( envenv ST_KEY_PREFIX )
+  [ -z "${ST_KEY_PREFIX}" ] && ST_KEY_PREFIX=0
 
   cat > "${TFMAIN}/backend.conf" << EOT
 subscription_id      = "${ST_SUBSCRIPTION_ID}"
 resource_group_name  = "${ST_RESGROUP_NAME}"
 storage_account_name = "${ST_ACCOUNT_NAME}"
 container_name       = "${ST_CONTAINER_NAME}"
-key                  = "${TFMAIN}/${TFSTOREKEY}-terraform.tfstate"
+key                  = "${TFMAIN}/${ST_KEY_PREFIX}-terraform.tfstate"
 use_azuread_auth     = true
 EOT
   export TF_CLI_ARGS_init="${TF_CLI_ARGS_init} -backend-config backend.conf"
@@ -126,9 +126,6 @@ ghtf_token_setup() {
 [ -z "${TFMAIN}" ] && TFMAIN=.
 
 
-## azure tenant default (probably not very useful)
-#[ -z "$TENANTKEY" ] && TENANTKEY=$BITBUCKET_DEPLOYMENT_ENVIRONMENT
-
 if [ -n "${BITBUCKET_STEP_OIDC_TOKEN}" ]; then
   ## check if we have OIDC tokens (doesn't work properly yet in bitbucket)
   echo "BITBUCKET_STEP_OIDC_TOKEN: ${BITBUCKET_STEP_OIDC_TOKEN}"
@@ -149,7 +146,7 @@ fi
 [ -f ./tfsettings ] && . ./tfsettings
 [ -f "${TFMAIN}/tfsettings" ] && . "${TFMAIN}/tfsettings"
 
-aztf_backend_conf $TENANTKEY $LZ_NAME
+aztf_backend_conf || exit 10
 
 ghtf_token_setup
 

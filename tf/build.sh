@@ -2,6 +2,9 @@
 
 BINDIR=$(dirname $0)
 
+# setup default tenant
+TENANTKEY=${DEFAULT_TENANTKEY:-live}
+
 ## parse arguments
 while [ $# -gt 0 ]; do
   case $1 in
@@ -9,7 +12,7 @@ while [ $# -gt 0 ]; do
     -tenantkey) TENANTKEY="$2"; shift 2;;
     -main) TFMAIN="$2"; shift 2;;
     -mode) TFMODE="$2"; shift 2;;
-    -storekey) TFSTOREKEY="$2"; shift 2;;
+    -storekey) ST_KEY_PREFIX="$2"; shift 2;;
     -azclilogin) AZCLILOGIN="1"; shift;;
     -*) echo "Unknown option $1"; shift;;
      *) break;;
