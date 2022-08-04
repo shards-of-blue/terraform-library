@@ -105,6 +105,8 @@ EOT
 ## Arrange for git clones from terraform to pick up an access token
 #
 ghtf_token_setup() {
+  echo TOKENSETUP
+  env
   [ -z "${GITHUB_WORKSPACE}" ] && return
   [ -z "${GITHUB_ORG_CLONETOKEN}" ] && return
   git config --global url."https://${GITHUB_ORG_CLONETOKEN}@github.com".insteadOf https://github.com
