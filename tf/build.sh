@@ -19,6 +19,9 @@ while [ $# -gt 0 ]; do
   esac
 done
 
+echo "build: TFMODE=${TFMODE} TFMAIN=${TFMAIN} ST_KEY_PREFIX=${ST_KEY_PREFIX} TENANTKEY=${TENANTKEY} AZCLILOGIN=${AZCLILOGIN}"
+
+
 ## setup default TF variables
 export TF_INPUT=0
 export TF_IN_AUTOMATION=1
