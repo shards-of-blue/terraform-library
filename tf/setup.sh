@@ -4,7 +4,6 @@
 
 ## look for various variations of an environment variable
 envenv() {
-  set -x
   local varname="${1}"
   local default="${2}"
   local v=$( eval echo \$${varname}_${TENANTKEY^^} )
@@ -109,7 +108,7 @@ ghtf_token_setup() {
   [ -z "${GITHUB_WORKSPACE}" ] && return
   [ -z "${GITHUB_ORG_CLONETOKEN}" ] && return
   git config --global url."https://${GITHUB_ORG_CLONETOKEN}@github.com".insteadOf https://github.com
-
+  cat .git/config
 }
 
 
@@ -165,7 +164,7 @@ if [ -n "${AZCLILOGIN}" ]; then
 
   echo az login --allow-no-subscriptions --username "$AZURE_CLI_CLIENT_ID" --password "$AZURE_CLI_CLIENT_SECRET" --tenant "$AZURE_CLI_TENANT_ID" | base64
   env|grep TF
-  az login --allow-no-subscriptions --username "$AZURE_CLI_CLIENT_ID" --password "$AZURE_CLI_CLIENT_SECRET" --tenant "$AZURE_CLI_TENANT_ID" || {
+  az login --allow-no-subscriptions --username "$AZURE_CLI_CLIENT_ID" --password "$AZURE_CLI_CLIENT_SECRET" --tenant "$AZURE_CLI_TENANT_ID" >/dev/null || {
 
     echo "AZ login failed"
     exit 2
