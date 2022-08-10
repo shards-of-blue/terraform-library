@@ -182,6 +182,10 @@ if [ -n "${AZCLILOGIN}" ]; then
 else
   export ARM_SUBSCRIPTION_ID=$( envenv AZURE_SUBSCRIPTION_ID )
   export ARM_CLIENT_ID=$( envenv AZURE_CLIENT_ID )
-  export ARM_CLIENT_SECRET=$( envenv AZURE_CLIENT_SECRET )
   export ARM_TENANT_ID=$( envenv AZURE_TENANT_ID )
+  if [ -z "${OIDCLOGIN}" ]; then
+    export ARM_CLIENT_SECRET=$( envenv AZURE_CLIENT_SECRET )
+  else
+    unset ARM_CLIENT_SECRET
+  fi
 fi
