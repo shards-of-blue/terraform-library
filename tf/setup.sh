@@ -185,10 +185,12 @@ else
   export ARM_TENANT_ID=$( envenv AZURE_TENANT_ID )
   if [ -z "${OIDCLOGIN}" ]; then
     export ARM_CLIENT_SECRET=$( envenv AZURE_CLIENT_SECRET )
+    export TF_VAR_use_oidc=false
   else
     unset ARM_CLIENT_SECRET
     export ARM_OIDC_REQUEST_TOKEN=$ACTIONS_ID_TOKEN_REQUEST_TOKEN
     export ARM_OIDC_REQUEST_URL=$ACTIONS_ID_TOKEN_REQUEST_URL
+    export TF_VAR_use_oidc=true
 
   fi
 fi
