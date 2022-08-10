@@ -90,6 +90,12 @@ aztf_backend_conf() {
   ST_KEY_PREFIX=$( envenv ST_KEY_PREFIX )
   [ -z "${ST_KEY_PREFIX}" ] && ST_KEY_PREFIX=0
 
+  if [ -n "${OIDCLOGIN}" ]; then
+    _AUTH='use_oidc = true'
+  else
+    _AUTH='use_azuread_auth = true'
+  fi
+
   echo " --setup: constructing azurerm backend configuration file"
 
   cat > "${TFMAIN}/backend.conf" << EOT
@@ -98,7 +104,7 @@ resource_group_name  = "${ST_RESGROUP_NAME}"
 storage_account_name = "${ST_ACCOUNT_NAME}"
 container_name       = "${ST_CONTAINER_NAME}"
 key                  = "${TFMAIN}/${ST_KEY_PREFIX}-terraform.tfstate"
-use_azuread_auth     = true
+$_AUTH
 EOT
   export TF_CLI_ARGS_init="${TF_CLI_ARGS_init} -backend-config backend.conf"
 }

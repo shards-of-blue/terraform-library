@@ -14,10 +14,15 @@ while [ $# -gt 0 ]; do
     -mode) TFMODE="$2"; shift 2;;
     -storekey) ST_KEY_PREFIX="$2"; shift 2;;
     -azclilogin) AZCLILOGIN="1"; shift;;
+    -azadlogin) AZADLOGIN="1"; shift;;
+    -oidclogin) OIDCLOGIN="1"; shift;;
     -*) echo "Unknown option $1"; shift;;
      *) break;;
   esac
 done
+
+## default az login is OIDC
+[ -z "${AZCLILOGIN}" -a -z "${AZADLOGIN}" -a -z "${OIDCLOGIN}" ] && OIDCLOGIN=1
 
 echo "build: TFMODE=${TFMODE} TFMAIN=${TFMAIN} ST_KEY_PREFIX=${ST_KEY_PREFIX} TENANTKEY=${TENANTKEY} AZCLILOGIN=${AZCLILOGIN}"
 
