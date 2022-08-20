@@ -1,0 +1,46 @@
+name: Build Deployment Library Artifact
+
+on:
+  push:
+    branches:
+      - 'main'
+      - 'release*'
+    
+  workflow_dispatch:
+    inputs:
+      libref:
+        required: false
+        type: string
+        default: main
+
+jobs:
+  upload-artifacts:
+    runs-on: ubuntu-latest
+
+    steps:
+      ## library repo
+      - uses: actions/checkout@v3
+        with:
+          repository: shards-of-blue/terraform-library
+          ref: ${{github.ref || inputs.libref}}
+          path: lib
+
+      ## fixup script mode
+      - name: fixup script mode
+        run: |
+          chmod a+x lib/tf/build.sh lib/tf/setup.sh
+
+      - if: ${{github.ref_name}} == 'main'
+        uses: actions/upload-artifact@v3
+        with:
+          name: terraform-library
+          path: lib/tf/
+          retention-days: 90
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: terraform-library-${{github.ref_name}}
+          path: lib/tf/
+          retention-days: 90
+
+#
