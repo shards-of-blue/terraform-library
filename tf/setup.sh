@@ -165,6 +165,7 @@ ghtf_token_setup
 ## check for tenant-specific versions of AZURE_* credential variables
 #
 
+set -x
 if [ -n "${AZCLILOGIN}" ]; then
   ## use a regular user account
   AZURE_CLI_SUBSCRIPTION_ID=$( envenv AZURE_CLI_SUBSCRIPTION_ID )
