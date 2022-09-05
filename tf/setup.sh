@@ -180,17 +180,35 @@ if [ -n "${AZCLILOGIN}" ]; then
   az account show
 
 else
-  export ARM_SUBSCRIPTION_ID=$( envenv AZURE_SUBSCRIPTION_ID )
-  export ARM_CLIENT_ID=$( envenv AZURE_CLIENT_ID )
-  export ARM_TENANT_ID=$( envenv AZURE_TENANT_ID )
-  if [ -z "${OIDCLOGIN}" ]; then
-    export ARM_CLIENT_SECRET=$( envenv AZURE_CLIENT_SECRET )
-    export ARM_USE_OIDC=false
-  else
-    unset ARM_CLIENT_SECRET
-    export ARM_OIDC_REQUEST_TOKEN=$ACTIONS_ID_TOKEN_REQUEST_TOKEN
-    export ARM_OIDC_REQUEST_URL=$ACTIONS_ID_TOKEN_REQUEST_URL
-    export ARM_USE_OIDC=true
+  if [ -n "${USEARMVARS}" ]; then
+    ## pass ARM credentials in TF environment variables
+    export TF_VAR_subscription_id=$( envenv AZURE_SUBSCRIPTION_ID )
+    export TF_VAR_client_id=$( envenv AZURE_CLIENT_ID )
+    export TF_VAR_tenant_id=$( envenv AZURE_TENANT_ID )
+    if [ -z "${OIDCLOGIN}" ]; then
+      export TF_VAR_client_secret=$( envenv AZURE_CLIENT_SECRET )
+      export TF_VAR_use_oidc=false
+    else
+      unset TF_VAR_client_secret
+      export TF_VAR_oidc_request_token=$ACTIONS_ID_TOKEN_REQUEST_TOKEN
+      export TF_VAR_oidc_request_url=$ACTIONS_ID_TOKEN_REQUEST_URL
+      export TF_VAR_use_oidc=true
 
+    fi
+  else
+    ## pass ARM credentials in generic environment variables
+    export ARM_SUBSCRIPTION_ID=$( envenv AZURE_SUBSCRIPTION_ID )
+    export ARM_CLIENT_ID=$( envenv AZURE_CLIENT_ID )
+    export ARM_TENANT_ID=$( envenv AZURE_TENANT_ID )
+    if [ -z "${OIDCLOGIN}" ]; then
+      export ARM_CLIENT_SECRET=$( envenv AZURE_CLIENT_SECRET )
+      export ARM_USE_OIDC=false
+    else
+      unset ARM_CLIENT_SECRET
+      export ARM_OIDC_REQUEST_TOKEN=$ACTIONS_ID_TOKEN_REQUEST_TOKEN
+      export ARM_OIDC_REQUEST_URL=$ACTIONS_ID_TOKEN_REQUEST_URL
+      export ARM_USE_OIDC=true
+
+    fi
   fi
 fi

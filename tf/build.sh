@@ -16,6 +16,7 @@ while [ $# -gt 0 ]; do
     -azclilogin) AZCLILOGIN="1"; shift;;
     -azadlogin) AZADLOGIN="1"; shift;;
     -oidclogin) OIDCLOGIN="1"; shift;;
+    -usearmvars) USEARMVARS="1"; shift;;
     -*) echo "Unknown option $1"; shift;;
      *) break;;
   esac
