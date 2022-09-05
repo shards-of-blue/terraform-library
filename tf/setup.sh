@@ -107,6 +107,11 @@ key                  = "${TFMAIN}/${ST_KEY_PREFIX}-terraform.tfstate"
 $_AUTH
 EOT
   export TF_CLI_ARGS_init="${TF_CLI_ARGS_init} -backend-config backend.conf"
+
+  ## show backend conf
+  echo '-----Backend conf:'
+  cat "${TFMAIN}/backend.conf"
+  echo '-----'
 }
 
 #
