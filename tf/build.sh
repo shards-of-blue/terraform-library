@@ -37,6 +37,10 @@ export TF_IN_AUTOMATION=1
 
 [ -n "${TFMAIN}" ] && GLOBALOPTS="-chdir=${TFMAIN}"
 
+echo 'build: TF environment:'
+env | grep TF_
+echo '-----'
+
 terraform $GLOBALOPTS init || exit 2
 
 case "${TFMODE}" in
