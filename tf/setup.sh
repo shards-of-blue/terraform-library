@@ -70,6 +70,9 @@ pull_subrepo()
 #
 aztf_backend_conf() {
 
+  ST_TENANT_ID=$( envenv ST_TENANT_ID )
+  [ -z "${ST_TENANT_ID}" ] && ST_TENANT_ID=$(yq '.az_infra_provisioning_tenant_id' < conf/$TENANTKEY.yaml)
+
   ST_SUBSCRIPTION_ID=$( envenv ST_SUBSCRIPTION_ID )
   [ -z "${ST_SUBSCRIPTION_ID}" ] && ST_SUBSCRIPTION_ID=$(yq '.az_infra_provisioning_subscription_id' < conf/$TENANTKEY.yaml)
 
@@ -165,7 +168,6 @@ ghtf_token_setup
 ## check for tenant-specific versions of AZURE_* credential variables
 #
 
-set -x
 if [ -n "${AZCLILOGIN}" ]; then
   ## use a regular user account
   AZURE_CLI_SUBSCRIPTION_ID=$( envenv AZURE_CLI_SUBSCRIPTION_ID )
