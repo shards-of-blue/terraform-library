@@ -100,7 +100,7 @@ aztf_backend_conf() {
   fi
   if [ -n "${USEARMVARS}" ]; then
     ## Add client_id
-    _CLIENT_ID="client_id = $( envenv AZURE_CLIENT_ID )"
+    _CLIENT_ID="client_id = \"$( envenv AZURE_CLIENT_ID )\""
   fi
 
   echo " --setup: constructing azurerm backend configuration file"
