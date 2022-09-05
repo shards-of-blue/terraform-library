@@ -102,6 +102,7 @@ aztf_backend_conf() {
   echo " --setup: constructing azurerm backend configuration file"
 
   cat > "${TFMAIN}/backend.conf" << EOT
+tenant_id            = "${ST_TENANT_ID}"
 subscription_id      = "${ST_SUBSCRIPTION_ID}"
 resource_group_name  = "${ST_RESGROUP_NAME}"
 storage_account_name = "${ST_ACCOUNT_NAME}"
