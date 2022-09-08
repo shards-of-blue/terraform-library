@@ -19,7 +19,7 @@ resource "azuredevops_git_repository" "repo1" {
   default_branch = try(var.args.default_branch, "refs/heads/main")
 
   initialization {
-    init_type = try(var.args.init_type, "Clean")
+    init_type = try(var.args.init_type, "Uninitialized")
   }
 
   lifecycle {
