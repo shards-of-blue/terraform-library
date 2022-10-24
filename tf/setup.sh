@@ -6,11 +6,20 @@
 envenv() {
   local varname="${1}"
   local default="${2}"
-  local v=$( eval echo \$${varname}_${TENANTKEY^^} )
+  echo \$${varname}_${TENANTKEY^^}
+  local v=$( eval echo \$${varname}_${TENANTKEY^^})
   if [ -n "${v}" ]; then echo $v; return; fi
   v=$( eval echo \$${varname} )
   if [ -n "${v}" ]; then echo $v; return; fi
   echo $default
+}
+
+## record environment variable definition to artifact file
+> .artifact.env
+expenv() {
+  local varname="${1}"
+  local value="${2}"
+  echo export ${varname}=\"${value}\" >> .artifact.env
 }
 
 ## get bitbucket access token
@@ -40,7 +49,7 @@ get_bbtoken()
   fi
 
   ## call bitbocket.org's OAUTH2 endpoint and extract the token from json-formatted output
-  export BITBUCKET_OAUTH_TOKEN=$( curl -s -X POST -u "${K}:${S}" -d 'grant_type=client_credentials' "https://bitbucket.org/site/oauth2/access_token" | jq -r '.access_token' )
+  expenv BITBUCKET_OAUTH_TOKEN="$( curl -s -X POST -u "${K}:${S}" -d 'grant_type=client_credentials' 'https://bitbucket.org/site/oauth2/access_token' | jq -r '.access_token' )"
 }
 
 pull_subrepo()
@@ -70,17 +79,20 @@ pull_subrepo()
 #
 aztf_backend_conf() {
 
+  local fname="${1}"
+  local CONFDIR="${2:-../conf}"
+
   ST_TENANT_ID=$( envenv ST_TENANT_ID )
-  [ -z "${ST_TENANT_ID}" ] && ST_TENANT_ID=$(yq '.az_infra_provisioning_tenant_id' < conf/$TENANTKEY.yaml)
+  [ -z "${ST_TENANT_ID}" ] && ST_TENANT_ID=$(yq '.az_infra_provisioning_tenant_id' < ${CONFDIR}/$TENANTKEY.yaml)
 
   ST_SUBSCRIPTION_ID=$( envenv ST_SUBSCRIPTION_ID )
-  [ -z "${ST_SUBSCRIPTION_ID}" ] && ST_SUBSCRIPTION_ID=$(yq '.az_infra_provisioning_subscription_id' < conf/$TENANTKEY.yaml)
+  [ -z "${ST_SUBSCRIPTION_ID}" ] && ST_SUBSCRIPTION_ID=$(yq '.az_infra_provisioning_subscription_id' < ${CONFDIR}/$TENANTKEY.yaml)
 
   ST_RESGROUP_NAME=$( envenv ST_RESGROUP_NAME )
-  [ -z "${ST_RESGROUP_NAME}" ] && ST_RESGROUP_NAME=$(yq '.az_infra_provisioning_resource_group' < conf/$TENANTKEY.yaml)
+  [ -z "${ST_RESGROUP_NAME}" ] && ST_RESGROUP_NAME=$(yq '.az_infra_provisioning_resource_group' < ${CONFDIR}/$TENANTKEY.yaml)
 
   ST_ACCOUNT_NAME=$( envenv ST_ACCOUNT_NAME )
-  [ -z "${ST_ACCOUNT_NAME}" ] && ST_ACCOUNT_NAME=$(yq '.az_infra_provisioning_storage_account' < conf/$TENANTKEY.yaml)
+  [ -z "${ST_ACCOUNT_NAME}" ] && ST_ACCOUNT_NAME=$(yq '.az_infra_provisioning_storage_account' < ${CONFDIR}/$TENANTKEY.yaml)
 
   ## container name component defaults to LZ name
   ST_CONTAINER_NAME=$( envenv ST_CONTAINER_NAME )
@@ -105,7 +117,7 @@ aztf_backend_conf() {
 
   echo " --setup: constructing azurerm backend configuration file"
 
-  cat > "${TFMAIN}/backend.conf" << EOT
+  cat > "${fname}" << EOT
 tenant_id            = "${ST_TENANT_ID}"
 subscription_id      = "${ST_SUBSCRIPTION_ID}"
 resource_group_name  = "${ST_RESGROUP_NAME}"
@@ -119,7 +131,7 @@ EOT
 
   ## show backend conf
   echo '-----Backend conf:'
-  cat "${TFMAIN}/backend.conf"
+  cat "${fname}"
   echo '-----'
 }
 
@@ -133,6 +145,69 @@ ghtf_token_setup() {
   git config --global url."https://${GITHUB_ORG_CLONETOKEN}@github.com".insteadOf https://github.com
 }
 
+prep_azcreds()
+{
+  #
+  ## check for tenant-specific versions of AZURE_* credential variables
+  #
+
+  if [ -n "${AZCLILOGIN}" ]; then
+    ## use a regular user account
+    AZURE_CLI_SUBSCRIPTION_ID=$( envenv AZURE_CLI_SUBSCRIPTION_ID )
+    AZURE_CLI_CLIENT_ID=$( envenv AZURE_CLI_CLIENT_ID )
+    AZURE_CLI_CLIENT_SECRET=$( envenv AZURE_CLI_CLIENT_SECRET )
+    AZURE_CLI_TENANT_ID=$( envenv AZURE_CLI_TENANT_ID )
+
+    az login --allow-no-subscriptions --username "$AZURE_CLI_CLIENT_ID" --password "$AZURE_CLI_CLIENT_SECRET" --tenant "$AZURE_CLI_TENANT_ID" >/dev/null || {
+
+      echo "AZ login failed"
+      exit 2
+    }
+
+    ## unset any ARM_ variables to avoid upsetting terraform
+    unset ARM_SUBSCRIPTION_ID
+    unset ARM_CLIENT_ID
+    unset ARM_CLIENT_SECRET
+    az account show
+
+  else
+    if [ -n "${USEARMVARS}" ]; then
+      ## pass ARM credentials in TF environment variables
+      expenv TF_VAR_subscription_id $( envenv AZURE_SUBSCRIPTION_ID )
+      expenv TF_VAR_client_id $( envenv AZURE_CLIENT_ID )
+      expenv TF_VAR_tenant_id $( envenv AZURE_TENANT_ID )
+      if [ -z "${OIDCLOGIN}" ]; then
+        expenv TF_VAR_client_secret $( envenv AZURE_CLIENT_SECRET )
+        expenv TF_VAR_use_oidc false
+      else
+        unset TF_VAR_client_secret
+        expenv TF_VAR_oidc_request_token $ACTIONS_ID_TOKEN_REQUEST_TOKEN
+        expenv TF_VAR_oidc_request_url $ACTIONS_ID_TOKEN_REQUEST_URL
+        expenv TF_VAR_use_oidc true
+
+      fi
+    else
+      ## pass ARM credentials in generic environment variables
+      exenv ARM_SUBSCRIPTION_ID $( envenv AZURE_SUBSCRIPTION_ID )
+      expenv ARM_CLIENT_ID $( envenv AZURE_CLIENT_ID )
+      expenv ARM_TENANT_ID $( envenv AZURE_TENANT_ID )
+      if [ -z "${OIDCLOGIN}" ]; then
+        expenv ARM_CLIENT_SECRET $( envenv AZURE_CLIENT_SECRET )
+        expenv ARM_USE_OIDC false
+      else
+        unset ARM_CLIENT_SECRET
+        expenv ARM_OIDC_REQUEST_TOKEN $ACTIONS_ID_TOKEN_REQUEST_TOKEN
+        expenv ARM_OIDC_REQUEST_URL $ACTIONS_ID_TOKEN_REQUEST_URL
+        expenv ARM_USE_OIDC true
+
+      fi
+    fi
+  fi
+}
+
+## setup default TF variables
+expenv TF_INPUT 0
+expenv TF_IN_AUTOMATION 1
 
 #
 ## record base directory of this build
@@ -149,80 +224,16 @@ ghtf_token_setup() {
 if [ -n "${BITBUCKET_STEP_OIDC_TOKEN}" ]; then
   ## check if we have OIDC tokens (doesn't work properly yet in bitbucket)
   echo "BITBUCKET_STEP_OIDC_TOKEN: ${BITBUCKET_STEP_OIDC_TOKEN}"
-  export ARM_OIDC_REQUEST_TOKEN=${BITBUCKET_STEP_OIDC_TOKEN}
+  expenv ARM_OIDC_REQUEST_TOKEN ${BITBUCKET_STEP_OIDC_TOKEN}
 fi
 
 ## set 'tenant' parameter which, by convention, is required in many roots
-export TF_VAR_tenant=${TENANTKEY}
+expenv TF_VAR_tenant ${TENANTKEY}
 
 ## look for env-specific terraform variable files
 FN="${TFMAIN}/${TENANTKEY}.tfvars"
 if [ -f "$FN" ]; then
-    export TF_CLI_ARGS_plan="${TF_CLI_ARGS_plan} -var-file=${FN}"
+    expenv TF_CLI_ARGS_plan "${TF_CLI_ARGS_plan} -var-file=${FN}"
 fi
 
-## collect any repo-defined settings
-[ -f ./.pipeline.vars ] && . ./.pipeline.vars
-[ -f ./tfsettings ] && . ./tfsettings
-[ -f "${TFMAIN}/tfsettings" ] && . "${TFMAIN}/tfsettings"
-
-aztf_backend_conf || exit 10
-
-ghtf_token_setup
-
-#
-## check for tenant-specific versions of AZURE_* credential variables
-#
-
-if [ -n "${AZCLILOGIN}" ]; then
-  ## use a regular user account
-  AZURE_CLI_SUBSCRIPTION_ID=$( envenv AZURE_CLI_SUBSCRIPTION_ID )
-  AZURE_CLI_CLIENT_ID=$( envenv AZURE_CLI_CLIENT_ID )
-  AZURE_CLI_CLIENT_SECRET=$( envenv AZURE_CLI_CLIENT_SECRET )
-  AZURE_CLI_TENANT_ID=$( envenv AZURE_CLI_TENANT_ID )
-
-  az login --allow-no-subscriptions --username "$AZURE_CLI_CLIENT_ID" --password "$AZURE_CLI_CLIENT_SECRET" --tenant "$AZURE_CLI_TENANT_ID" >/dev/null || {
-
-    echo "AZ login failed"
-    exit 2
-  }
-
-  ## unset any ARM_ variables to avoid upsetting terraform
-  unset ARM_SUBSCRIPTION_ID
-  unset ARM_CLIENT_ID
-  unset ARM_CLIENT_SECRET
-  az account show
-
-else
-  if [ -n "${USEARMVARS}" ]; then
-    ## pass ARM credentials in TF environment variables
-    export TF_VAR_subscription_id=$( envenv AZURE_SUBSCRIPTION_ID )
-    export TF_VAR_client_id=$( envenv AZURE_CLIENT_ID )
-    export TF_VAR_tenant_id=$( envenv AZURE_TENANT_ID )
-    if [ -z "${OIDCLOGIN}" ]; then
-      export TF_VAR_client_secret=$( envenv AZURE_CLIENT_SECRET )
-      export TF_VAR_use_oidc=false
-    else
-      unset TF_VAR_client_secret
-      export TF_VAR_oidc_request_token=$ACTIONS_ID_TOKEN_REQUEST_TOKEN
-      export TF_VAR_oidc_request_url=$ACTIONS_ID_TOKEN_REQUEST_URL
-      export TF_VAR_use_oidc=true
-
-    fi
-  else
-    ## pass ARM credentials in generic environment variables
-    export ARM_SUBSCRIPTION_ID=$( envenv AZURE_SUBSCRIPTION_ID )
-    export ARM_CLIENT_ID=$( envenv AZURE_CLIENT_ID )
-    export ARM_TENANT_ID=$( envenv AZURE_TENANT_ID )
-    if [ -z "${OIDCLOGIN}" ]; then
-      export ARM_CLIENT_SECRET=$( envenv AZURE_CLIENT_SECRET )
-      export ARM_USE_OIDC=false
-    else
-      unset ARM_CLIENT_SECRET
-      export ARM_OIDC_REQUEST_TOKEN=$ACTIONS_ID_TOKEN_REQUEST_TOKEN
-      export ARM_OIDC_REQUEST_URL=$ACTIONS_ID_TOKEN_REQUEST_URL
-      export ARM_USE_OIDC=true
-
-    fi
-  fi
-fi
+aztf_backend_conf "artifact.backend.conf" || exit 10

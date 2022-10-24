@@ -28,12 +28,19 @@ done
 echo "build: TFMODE=${TFMODE} TFMAIN=${TFMAIN} ST_KEY_PREFIX=${ST_KEY_PREFIX} TENANTKEY=${TENANTKEY} AZCLILOGIN=${AZCLILOGIN}"
 
 
-## setup default TF variables
-export TF_INPUT=0
-export TF_IN_AUTOMATION=1
-
 . ${BINDIR}/setup.sh
 
+[ -e .artifact.backend.conf ] && cp -p .artifact.backend.conf "${TFMAIN}/backend.conf"
+
+[ -e .artifact.env ] && . .artifact.env
+
+## collect any repo-defined settings
+[ -f ./.pipeline.vars ] && . ./.pipeline.vars
+[ -f ./tfsettings ] && . ./tfsettings
+[ -f "${TFMAIN}/tfsettings" ] && . "${TFMAIN}/tfsettings"
+
+ghtf_token_setup
+prep_azcreds
 
 [ -n "${TFMAIN}" ] && GLOBALOPTS="-chdir=${TFMAIN}"
 
