@@ -6,7 +6,6 @@
 envenv() {
   local varname="${1}"
   local default="${2}"
-  echo \$${varname}_${TENANTKEY^^}
   local v=$( eval echo \$${varname}_${TENANTKEY^^})
   if [ -n "${v}" ]; then echo $v; return; fi
   v=$( eval echo \$${varname} )
