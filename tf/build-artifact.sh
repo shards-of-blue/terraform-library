@@ -4,6 +4,7 @@ BINDIR=$(dirname $0)
 
 # setup default tenant
 TENANTKEY=${DEFAULT_TENANTKEY:-live}
+AZCONFDIR='../conf'
 
 ## parse arguments
 while [ $# -gt 0 ]; do
@@ -11,11 +12,11 @@ while [ $# -gt 0 ]; do
     -v) verbose=1; shift;;
     -tenantkey) TENANTKEY="$2"; shift 2;;
     -main) TFMAIN="$2"; shift 2;;
-    -mode) TFMODE="$2"; shift 2;;
     -storekey) ST_KEY_PREFIX="$2"; shift 2;;
     -storecontainer) ST_CONTAINER_NAME="$2"; shift 2;;
     -usearmvars) USEARMVARS="1"; shift;;
     -artifactdir) ARTIFACTDIR="$2"; shift 2;;
+    -azconfdir) AZCONFDIR="$2"; shift 2;;
     -*) echo "Unknown option $1"; shift;;
      *) break;;
   esac
@@ -25,7 +26,7 @@ done
 
 [ -d "${ARTIFACTDIR}" ] || exit 5
 
-[ -f .artifact.backend.conf ] && cp -p .artifact.backend.conf "${ARTIFACTDIR}/backend.conf"
+env_init "${ARTIFACTDIR}/runtime.env"
 
-[ -f .artifact.env ] && cp -p .artifact.env "${ARTIFACTDIR}/runtime.env"
+aztf_backend_conf "${ARTIFACTDIR}/backend.conf" "${AZCONFDIR}" || exit 6
 

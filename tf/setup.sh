@@ -14,11 +14,43 @@ envenv() {
 }
 
 ## record environment variable definition to artifact file
-> .artifact.env
 expenv() {
   local varname="${1}"
   local value="${2}"
-  echo export ${varname}=\"${value}\" >> .artifact.env
+  echo export ${varname}=\"${value}\" >> ${ENV_ARTIFACT_FNAME}
+}
+
+
+env_init() {
+  ## re-init environment setting artifact file
+  ENV_ARTIFACT_FNAME="${1}"
+  > ${ENV_ARTIFACT_FNAME}
+
+  ## setup default TF variables
+  expenv TF_INPUT 0
+  expenv TF_IN_AUTOMATION 1
+
+  #
+  ## record base directory of this build
+  ## (note: default on assumption this script lives in "lib/tf")
+  #
+  [ -z "${BASEDIR}" ] && BASEDIR=$GITHUB_WORKSPACE
+  [ -z "${BASEDIR}" ] && BASEDIR=$BITBUCKET_CLONE_DIR
+  [ -z "${BASEDIR}" ] && BASEDIR="$(realpath ${BINDIR}/../..)"
+
+  [ -z "${TFMAIN}" -a -d tfmain ] && TFMAIN=tfmain
+  [ -z "${TFMAIN}" ] && TFMAIN=.
+
+  expenv TFMAIN ${TFMAIN}
+
+  ## set 'tenant' parameter which, by convention, is required in many roots
+  expenv TF_VAR_tenant ${TENANTKEY}
+
+  ## look for env-specific terraform variable files
+  FN="${TFMAIN}/${TENANTKEY}.tfvars"
+  if [ -f "$FN" ]; then
+    expenv TF_CLI_ARGS_plan "${TF_CLI_ARGS_plan} -var-file=${FN}"
+  fi
 }
 
 ## get bitbucket access token
@@ -71,6 +103,7 @@ pull_subrepo()
   #git archive --format=tar --remote=${URL} | ( cd ${folder} && tar xvf - )
 }
 
+
 #
 ## setup terraform azure backend configuration
 ## Get data from env variables, if present. Otherwise extract from
@@ -109,10 +142,10 @@ aztf_backend_conf() {
   else
     _AUTH='use_azuread_auth = true'
   fi
-  if [ -n "${USEARMVARS}" ]; then
-    ## Add client_id
-    _CLIENT_ID="client_id = \"$( envenv AZURE_CLIENT_ID )\""
-  fi
+  #if [ -n "${USEARMVARS}" ]; then
+  #  ## Add client_id
+  #  _CLIENT_ID="client_id = \"$( envenv AZURE_CLIENT_ID )\""
+  #fi
 
   echo " --setup: constructing azurerm backend configuration file"
 
@@ -123,7 +156,7 @@ resource_group_name  = "${ST_RESGROUP_NAME}"
 storage_account_name = "${ST_ACCOUNT_NAME}"
 container_name       = "${ST_CONTAINER_NAME}"
 key                  = "${TFMAIN}/${ST_KEY_PREFIX}-terraform.tfstate"
-$_CLIENT_ID
+client_id            = "$( envenv AZURE_CLIENT_ID )"
 $_AUTH
 EOT
   export TF_CLI_ARGS_init="${TF_CLI_ARGS_init} -backend-config backend.conf"
@@ -142,6 +175,18 @@ ghtf_token_setup() {
   [ -z "${GITHUB_ORG_CLONETOKEN}" ] && return
   echo " --setup: setup github token to clone other repos in the organization"
   git config --global url."https://${GITHUB_ORG_CLONETOKEN}@github.com".insteadOf https://github.com
+}
+
+
+get_oidc_env() {
+  if [ -n "${BITBUCKET_STEP_OIDC_TOKEN}" ]; then
+    ## check if we have OIDC tokens (doesn't work properly yet in bitbucket)
+    expenv _OIDC_REQUEST_TOKEN ${BITBUCKET_STEP_OIDC_TOKEN}
+  fi
+  if [ -n "${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" ]; then
+    expenv _OIDC_REQUEST_TOKEN $ACTIONS_ID_TOKEN_REQUEST_TOKEN
+    expenv _OIDC_REQUEST_URL $ACTIONS_ID_TOKEN_REQUEST_URL
+  fi
 }
 
 prep_azcreds()
@@ -180,14 +225,15 @@ prep_azcreds()
         expenv TF_VAR_use_oidc false
       else
         unset TF_VAR_client_secret
-        expenv TF_VAR_oidc_request_token $ACTIONS_ID_TOKEN_REQUEST_TOKEN
-        expenv TF_VAR_oidc_request_url $ACTIONS_ID_TOKEN_REQUEST_URL
+        get_oidc_env
+        expenv TF_VAR_oidc_request_token $_OIDC_REQUEST_TOKEN
+        expenv TF_VAR_oidc_request_url $_OIDC_REQUEST_URL
         expenv TF_VAR_use_oidc true
 
       fi
     else
       ## pass ARM credentials in generic environment variables
-      exenv ARM_SUBSCRIPTION_ID $( envenv AZURE_SUBSCRIPTION_ID )
+      expenv ARM_SUBSCRIPTION_ID $( envenv AZURE_SUBSCRIPTION_ID )
       expenv ARM_CLIENT_ID $( envenv AZURE_CLIENT_ID )
       expenv ARM_TENANT_ID $( envenv AZURE_TENANT_ID )
       if [ -z "${OIDCLOGIN}" ]; then
@@ -195,44 +241,12 @@ prep_azcreds()
         expenv ARM_USE_OIDC false
       else
         unset ARM_CLIENT_SECRET
-        expenv ARM_OIDC_REQUEST_TOKEN $ACTIONS_ID_TOKEN_REQUEST_TOKEN
-        expenv ARM_OIDC_REQUEST_URL $ACTIONS_ID_TOKEN_REQUEST_URL
+        get_oidc_env
+        expenv ARM_OIDC_REQUEST_TOKEN $_OIDC_REQUEST_TOKEN
+        expenv ARM_OIDC_REQUEST_URL $_OIDC_REQUEST_URL
         expenv ARM_USE_OIDC true
 
       fi
     fi
   fi
 }
-
-## setup default TF variables
-expenv TF_INPUT 0
-expenv TF_IN_AUTOMATION 1
-
-#
-## record base directory of this build
-## (note: default on assumption this script lives in "lib/tf")
-#
-[ -z "${BASEDIR}" ] && BASEDIR=$GITHUB_WORKSPACE
-[ -z "${BASEDIR}" ] && BASEDIR=$BITBUCKET_CLONE_DIR
-[ -z "${BASEDIR}" ] && BASEDIR="$(realpath ${BINDIR}/../..)"
-
-[ -z "${TFMAIN}" -a -d tfmain ] && TFMAIN=tfmain
-[ -z "${TFMAIN}" ] && TFMAIN=.
-
-
-if [ -n "${BITBUCKET_STEP_OIDC_TOKEN}" ]; then
-  ## check if we have OIDC tokens (doesn't work properly yet in bitbucket)
-  echo "BITBUCKET_STEP_OIDC_TOKEN: ${BITBUCKET_STEP_OIDC_TOKEN}"
-  expenv ARM_OIDC_REQUEST_TOKEN ${BITBUCKET_STEP_OIDC_TOKEN}
-fi
-
-## set 'tenant' parameter which, by convention, is required in many roots
-expenv TF_VAR_tenant ${TENANTKEY}
-
-## look for env-specific terraform variable files
-FN="${TFMAIN}/${TENANTKEY}.tfvars"
-if [ -f "$FN" ]; then
-    expenv TF_CLI_ARGS_plan "${TF_CLI_ARGS_plan} -var-file=${FN}"
-fi
-
-aztf_backend_conf "artifact.backend.conf" || exit 10
