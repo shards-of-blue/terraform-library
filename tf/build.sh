@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 BINDIR=$(dirname $0)
 
@@ -38,7 +38,7 @@ ghtf_token_setup
 prep_azcreds
 aztf_backend_conf "${TFMAIN}/backend.conf" "${AZCONFDIR}" || exit 6
 
-source .runtime.env
+. .runtime.env
 
 
 ## collect any repo-defined settings

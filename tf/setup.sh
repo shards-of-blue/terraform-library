@@ -156,7 +156,7 @@ resource_group_name  = "${ST_RESGROUP_NAME}"
 storage_account_name = "${ST_ACCOUNT_NAME}"
 container_name       = "${ST_CONTAINER_NAME}"
 key                  = "${TFMAIN}/${ST_KEY_PREFIX}-terraform.tfstate"
-client_id            = "$( envenv AZURE_CLIENT_ID )"
+#client_id            = "$( envenv AZURE_CLIENT_ID )"
 $_AUTH
 EOT
   export TF_CLI_ARGS_init="${TF_CLI_ARGS_init} -backend-config backend.conf"
